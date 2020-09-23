@@ -30,6 +30,19 @@ class ObjectDetect:
 
         self.n, self.c, self.h, self.w = self.input_shape
 
+        fh = open("coco-labels-paper.txt","r")
+        self.objectNames = fh.readlines()
+        fh.close()
+
+        self.numRequests = 4
+        self.cur_request_id = 0
+        self.next_request_id = int(self.numRequests/2)
+
+        self.firstFrames = True
+        self.firstFramesCounter = 0
+
+        
+
     def load_model(self):
         '''
         This method is for loading the model to the device specified by the user.
@@ -41,7 +54,7 @@ class ObjectDetect:
         if self.cpu_extension and "CPU" in self.device:
             self.core.add_extension(self.cpu_extension, self.device)
 
-        self.net = self.core.load_network(network=self.model, device_name=self.device, num_requests=1)
+        self.net = self.core.load_network(network=self.model, device_name=self.device, num_requests=self.numRequests)
 
 
     def predict(self, image):
@@ -54,13 +67,23 @@ class ObjectDetect:
 
         # 2) Sync inference
         input_dict = {self.input_name: preprocessed_image}
-        result = self.net.infer(input_dict)[self.output_name]
+        # sync API
+        #result = self.net.infer(input_dict)[self.output_name]
+
+        # async API
+        infer_request = self.net.start_async(self.next_request_id, input_dict)
+        infer_status = self.net.requests[self.cur_request_id].wait()
+        result = self.net.requests[self.cur_request_id].outputs[self.output_name]
+
+        self.cur_request_id = (self.cur_request_id + 1) % self.numRequests
+        self.next_request_id = (self.next_request_id + 1) % self.numRequests
+
 
         # 3) post processing inference results
-        coords = self.preprocess_output(result, width, height, self.threshold)
+        objects = self.preprocess_output(result, width, height, self.threshold)
 
         # 4) return coordinates
-        return coords
+        return objects
 
     def check_model(self):
         raise NotImplementedError
@@ -81,19 +104,28 @@ class ObjectDetect:
         Before feeding the output of this model to the next model,
         you might have to preprocess the output. This function is where you can do that.
         '''
-        coords = []
+        objects = []
 
-        for box in result[0][0]:  # Output shape is 1x1x100x7
-            conf = box[2]
-            if conf >= pred_th:
-                xmin = int(box[3] * width)
-                ymin = int(box[4] * height)
-                xmax = int(box[5] * width)
-                ymax = int(box[6] * height)
-                # max is needed to avoid negative box coordinate that can cause a crash during roi image resize
-                coords = [max(0,xmin), max(0,ymin), max(0,xmax), max(0,ymax)]
+        if self.firstFrames == False:
+            for item in result[0][0]:
+                if item[0] == -1:
+                    break
+                else:
+                    print(item)
+                    conf = item[2]
+                    if conf >= pred_th:
+                        xmin = int(item[3] * width)
+                        ymin = int(item[4] * height)
+                        xmax = int(item[5] * width)
+                        ymax = int(item[6] * height)
 
-        # print(coords)
-        # print("----")
-        # print(coords[0])
-        return coords
+                        objects.append([self.objectNames[int(item[1])-1].strip(), item[2], max(0,xmin), max(0,ymin), max(0,xmax), max(0,ymax)])
+
+        if self.firstFrames == True:
+            self.firstFramesCounter += 1
+            if self.firstFramesCounter == self.numRequests:
+                self.firstFrames = False
+
+        #print(objects)
+
+        return objects
