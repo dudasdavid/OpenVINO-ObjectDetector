@@ -111,7 +111,7 @@ class ObjectDetect:
                 if item[0] == -1:
                     break
                 else:
-                    print(item)
+                    #print(item)
                     conf = item[2]
                     if conf >= pred_th:
                         xmin = int(item[3] * width)
