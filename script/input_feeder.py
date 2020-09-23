@@ -36,6 +36,9 @@ class InputFeeder:
             self.cap.set(3, self.width)
             self.cap.set(4, self.height)
             self.cap.set(cv2.CAP_PROP_FPS, self.fps)
+        elif self.input_type=='picam':
+            from piVideoStream import PiVideoStream
+            self.cap = PiVideoStream(resolution=(self.width, self.height),framerate=self.fps).start()
         else:
             self.cap=cv2.imread(self.input_file)
 
@@ -60,6 +63,8 @@ class InputFeeder:
                 if self.input_type == 'image':
                     # copy is needed to avoid using the same frame buffer
                     frame = self.cap.copy()
+                elif self.input_type == 'picam':
+                    frame=self.cap.read()
                 else:
                     _, frame=self.cap.read()
 
