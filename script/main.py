@@ -26,9 +26,9 @@ def build_argparser():
                              "CPU, GPU, FPGA or MYRIAD is acceptable. Sample "
                              "will look for a suitable plugin for device "
                              "specified (CPU by default)")
-    parser.add_argument("-p", "--precision", type=str, default="FP32",
+    parser.add_argument("-p", "--precision", type=str, default="FP16",
                         help="Model precision"
-                             "(FP32 by default)")
+                             "(FP16 by default)")
     parser.add_argument("-pt", "--prob_threshold", type=float, default=0.6,
                         help="Probability threshold for detections filtering"
                         "(0.6 by default)")
@@ -45,6 +45,10 @@ def build_argparser():
                         help="Save output"
                              "(False by default)")
 
+    parser.add_argument("-mo", "--model", type=str, default="../model/ssd_mobilenet_v2_coco_2018_03_29",
+                        help="IR Model"
+                             "(ssd_mobilenet_v2_coco_2018_03_29 by default)")    
+
     return parser
 
 def load_models(args):
@@ -54,7 +58,7 @@ def load_models(args):
     :return: the loaded model
     '''
 
-    object_model     = "../model/frozen_inference_graph"
+    object_model     = args.model
 
     start_model_load_time = time.time()
     objectDetection = ObjectDetect(object_model, args.device, threshold=args.prob_threshold)
@@ -103,18 +107,27 @@ def infer_on_stream(args, model):
             break
         # start measuring overall execution time
         start_processing_time = time.time()
-        # 1) First detect faces on the image
+        # 1) First detect objects on the image
         start_object_infer_time = time.time()  # time measurement started
-        obj_coords = objectDetection.predict(batch)
+        objects = objectDetection.predict(batch)
         total_object_infer_time = time.time() - start_object_infer_time  # time measurement finished
 
-        # executed only if there is a face on the image
-        if len(obj_coords) == 4:
+        # executed only if there are objects on the image
+        if len(objects) > 0:
 
             # if UI marking is turned on draw the vectors, rectangles, etc
             if ui_marking:
-                # object bounding box
-                cv2.rectangle(batch, (obj_coords[0], obj_coords[1]), (obj_coords[2], obj_coords[3]), (0, 255, 0), 1)
+                # objects bounding boxes
+                for item in objects:
+                    # draw the bounding box
+                    cv2.rectangle(batch, (item[2], item[3]), (item[4], item[5]), (0, 255, 0), 1)
+                    # prepare the label
+                    label_text = f"{item[0]}: {item[1]*100:.3}%"
+                    label_size = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)[0]
+                    label_left = item[2]
+                    label_top = item[3] - label_size[1]
+                    label_bottom = label_top + label_size[1] - 5
+                    cv2.putText(batch, label_text, (label_left, label_bottom), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
 
         # Measure overall FPS
@@ -125,7 +138,7 @@ def infer_on_stream(args, model):
         if fps_marking:
             label_text = f"FPS: {total_fps:.3}"
             cv2.putText(batch, label_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
-            label_text = f"Face detection inference time: {total_object_infer_time*1000:.3}ms"
+            label_text = f"Object detection inference time: {total_object_infer_time*1000:.4}ms"
             cv2.putText(batch, label_text, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
 
         # Show the output image and save the output video
