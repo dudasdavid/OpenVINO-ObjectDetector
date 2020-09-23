@@ -84,6 +84,9 @@ def infer_on_stream(args, model):
     if args.input == 'cam':
         feed = InputFeeder(input_type='cam', flip=1)
         feed.set_camera_properties(args.width, args.height, args.fps)
+    elif args.input == 'picam':
+        feed = InputFeeder(input_type='picam', flip=1)
+        feed.set_camera_properties(args.width, args.height, args.fps)
     elif args.input.endswith('.jpg') or args.input.endswith('.bmp') or args.input.endswith('.png'):
         feed = InputFeeder(input_type='image', input_file=args.input)
     elif args.input.endswith('.mp4'):
@@ -97,6 +100,8 @@ def infer_on_stream(args, model):
     # run-time switches
     ui_marking = True
     fps_marking = True
+    label_background_color = (125, 175, 75)
+    label_text_color = (255, 255, 255)  # white text
 
     # Start recording of output saving is enabled
     if args.save_output:
@@ -120,14 +125,19 @@ def infer_on_stream(args, model):
                 # objects bounding boxes
                 for item in objects:
                     # draw the bounding box
-                    cv2.rectangle(batch, (item[2], item[3]), (item[4], item[5]), (0, 255, 0), 1)
+                    cv2.rectangle(batch, (item[2], item[3]), (item[4], item[5]), (0, 255, 0), 2)
                     # prepare the label
                     label_text = f"{item[0]}: {item[1]*100:.3}%"
                     label_size = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)[0]
                     label_left = item[2]
                     label_top = item[3] - label_size[1]
+                    if (label_top < 1):
+                        label_top = 1
+                    label_right = label_left + label_size[0]
                     label_bottom = label_top + label_size[1] - 5
-                    cv2.putText(batch, label_text, (label_left, label_bottom), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                    cv2.rectangle(batch, (label_left - 1, label_top - 6), (label_right + 1, label_bottom + 1),
+                              label_background_color, -1)
+                    cv2.putText(batch, label_text, (label_left, label_bottom), cv2.FONT_HERSHEY_SIMPLEX, 0.5, label_text_color, 1)
 
 
         # Measure overall FPS
