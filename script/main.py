@@ -85,7 +85,7 @@ def infer_on_stream(args, model):
         feed = InputFeeder(input_type='cam', flip=1)
         feed.set_camera_properties(args.width, args.height, args.fps)
     elif args.input == 'picam':
-        feed = InputFeeder(input_type='picam', flip=1)
+        feed = InputFeeder(input_type='picam')
         feed.set_camera_properties(args.width, args.height, args.fps)
     elif args.input.endswith('.jpg') or args.input.endswith('.bmp') or args.input.endswith('.png'):
         feed = InputFeeder(input_type='image', input_file=args.input)
@@ -102,6 +102,9 @@ def infer_on_stream(args, model):
     fps_marking = True
     label_background_color = (125, 175, 75)
     label_text_color = (255, 255, 255)  # white text
+
+    cv2.namedWindow( "Frame", cv2.WINDOW_NORMAL );
+    cv2.setWindowProperty("Frame", cv2.WND_PROP_FULLSCREEN,cv2.WINDOW_FULLSCREEN);
 
     # Start recording of output saving is enabled
     if args.save_output:
