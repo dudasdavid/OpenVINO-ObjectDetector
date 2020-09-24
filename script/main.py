@@ -112,7 +112,7 @@ def infer_on_stream(args, model):
 
     for batch in feed.next_batch():
         if batch is None:
-            break
+            continue
         # start measuring overall execution time
         start_processing_time = time.time()
         # 1) First detect objects on the image
