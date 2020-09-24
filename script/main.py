@@ -108,7 +108,7 @@ def infer_on_stream(args, model):
 
     # Start recording of output saving is enabled
     if args.save_output:
-        out = cv2.VideoWriter('out.mp4', 0x00000021, 30, (args.width, args.height))
+        out = cv2.VideoWriter('out.avi', cv2.VideoWriter_fourcc(*'MJPG'), 15, (args.width, args.height))
 
     for batch in feed.next_batch():
         if batch is None:
@@ -163,7 +163,7 @@ def infer_on_stream(args, model):
         # Press r on keyboard to toggle roll compensation
         # Press u on keyboard to toggle ui drawings
         # Press f on keyboard to fps drawings
-        ret = cv2.waitKey(1)
+        ret = cv2.waitKey(20)
         if ret & 0xFF == ord('q'):
             break
         elif ret & 0xFF == ord('u'):
@@ -172,7 +172,7 @@ def infer_on_stream(args, model):
             fps_marking = not fps_marking
 
     # close the feed when stopping and finish the video saving
-    feed.close()
+    #feed.close()
     if args.save_output:
         out.release()
 
