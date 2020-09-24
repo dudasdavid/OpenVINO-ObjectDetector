@@ -15,11 +15,14 @@ class ObjectDetect:
         self.threshold = threshold
         self.cpu_extension = extensions
 
-        self.core = None
+        #self.core = None
         self.net = None
 
+        self.core = IECore()
+
         try:
-            self.model = IENetwork(self.model_structure, self.model_weights)
+            #self.model = IENetwork(self.model_structure, self.model_weights)
+            self.model = self.core.read_network(model=self.model_structure, weights=self.model_weights)
         except Exception as e:
             raise ValueError("Could not Initialise the network. Have you enterred the correct model path?")
 
@@ -48,7 +51,7 @@ class ObjectDetect:
         This method is for loading the model to the device specified by the user.
         If your model requires any Plugins, this is where you can load them.
         '''
-        self.core = IECore()
+        
 
         # Add a CPU extension, if applicable
         if self.cpu_extension and "CPU" in self.device:
