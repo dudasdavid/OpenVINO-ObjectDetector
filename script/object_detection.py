@@ -1,5 +1,6 @@
 from openvino.inference_engine import IENetwork, IECore
 import cv2
+import numpy as np
 
 class ObjectDetect:
     '''
@@ -38,6 +39,7 @@ class ObjectDetect:
         fh = open("coco-labels-paper.txt","r")
         self.objectNames = fh.readlines()
         fh.close()
+        self.boxColors = np.random.uniform(0, 255, size=(len(self.objectNames), 3))
 
         self.numRequests = 4
         self.cur_request_id = 0
@@ -150,9 +152,10 @@ class ObjectDetect:
                         xmax = int(item[5] * width)
                         ymax = int(item[6] * height)
 
-                        objects.append({'class': self.objectNames[int(item[1])-1].strip(), 'confidence': item[2], 'xmin': max(0,xmin), 'ymin': max(0,ymin), 'xmax': max(0,xmax), 'ymax': max(0,ymax)})
+                        objects.append({'class': self.objectNames[int(item[1])-1].strip(), 'confidence': item[2], 'xmin': max(0,xmin), 'ymin': max(0,ymin), 'xmax': max(0,xmax), 'ymax': max(0,ymax), 'color': self.boxColors[int(item[1])-1]})
 
-            objects = self.filter_objects(objects, 0.4, pred_th)
+            # 0.1 is the overlap threshold, should be a parameter
+            objects = self.filter_objects(objects, 0.1, pred_th)
 
         if self.firstFrames == True:
             self.firstFramesCounter += 1

@@ -130,7 +130,7 @@ def infer_on_stream(args, model):
                 # objects bounding boxes
                 for obj in objects:
                     # draw the bounding box
-                    cv2.rectangle(batch, (obj['xmin'], obj['ymin']), (obj['xmax'], obj['ymax']), (0, 255, 0), 2)
+                    cv2.rectangle(batch, (obj['xmin'], obj['ymin']), (obj['xmax'], obj['ymax']), obj['color'], 2)
                     # prepare the label
                     label_text = f"{obj['class']}: {obj['confidence']*100:.3}%"
                     label_size = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 1)[0]
