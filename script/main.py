@@ -5,6 +5,7 @@ import time
 from threading import Thread
 from queue import Queue
 from argparse import ArgumentParser
+import datetime
 
 
 def build_argparser():
@@ -108,7 +109,8 @@ def infer_on_stream(args, model):
 
     # Start recording of output saving is enabled
     if args.save_output:
-        out = cv2.VideoWriter('out.avi', cv2.VideoWriter_fourcc(*'MJPG'), 15, (args.width, args.height))
+        now=datetime.datetime.now()
+        out = cv2.VideoWriter(now.strftime("out-%Y%m%d-%H%M%S.avi"), cv2.VideoWriter_fourcc(*'MJPG'), 15, (args.width, args.height))
 
     for batch in feed.next_batch():
         if batch is None:
