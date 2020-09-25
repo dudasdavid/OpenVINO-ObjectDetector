@@ -100,7 +100,7 @@ def infer_on_stream(args, model):
 
     # run-time switches
     ui_marking = True
-    fps_marking = True
+    fps_marking = False
     label_background_color = (125, 175, 75)
     label_text_color = (255, 255, 255)  # white text
 
