@@ -21,7 +21,9 @@ class ObjectDetect:
         self.core = IECore()
 
         try:
+            # with 2020.1 openvino:
             #self.model = IENetwork(self.model_structure, self.model_weights)
+            # with 2020.4 openvino:
             self.model = self.core.read_network(model=self.model_structure, weights=self.model_weights)
         except Exception as e:
             raise ValueError("Could not Initialise the network. Have you enterred the correct model path?")
@@ -102,6 +104,32 @@ class ObjectDetect:
 
         return image
 
+    def filter_objects(self, objects, iou_threshold, prob_threshold):
+        # Filtering overlapping boxes with respect to the --iou_threshold CLI parameter
+        objects = sorted(objects, key=lambda obj : obj['confidence'], reverse=True)
+        for i in range(len(objects)):
+            if objects[i]['confidence'] == 0:
+                continue
+            for j in range(i + 1, len(objects)):
+                if self.intersection_over_union(objects[i], objects[j]) > iou_threshold:
+                    objects[j]['confidence'] = 0
+
+        return tuple(obj for obj in objects if obj['confidence'] >= prob_threshold)
+
+    def intersection_over_union(self, box_1, box_2):
+        width_of_overlap_area = min(box_1['xmax'], box_2['xmax']) - max(box_1['xmin'], box_2['xmin'])
+        height_of_overlap_area = min(box_1['ymax'], box_2['ymax']) - max(box_1['ymin'], box_2['ymin'])
+        if width_of_overlap_area < 0 or height_of_overlap_area < 0:
+            area_of_overlap = 0
+        else:
+            area_of_overlap = width_of_overlap_area * height_of_overlap_area
+        box_1_area = (box_1['ymax'] - box_1['ymin']) * (box_1['xmax'] - box_1['xmin'])
+        box_2_area = (box_2['ymax'] - box_2['ymin']) * (box_2['xmax'] - box_2['xmin'])
+        area_of_union = box_1_area + box_2_area - area_of_overlap
+        if area_of_union == 0:
+            return 0
+        return area_of_overlap / area_of_union
+
     def preprocess_output(self, result, width, height, pred_th):
         '''
         Before feeding the output of this model to the next model,
@@ -122,7 +150,9 @@ class ObjectDetect:
                         xmax = int(item[5] * width)
                         ymax = int(item[6] * height)
 
-                        objects.append([self.objectNames[int(item[1])-1].strip(), item[2], max(0,xmin), max(0,ymin), max(0,xmax), max(0,ymax)])
+                        objects.append({'class': self.objectNames[int(item[1])-1].strip(), 'confidence': item[2], 'xmin': max(0,xmin), 'ymin': max(0,ymin), 'xmax': max(0,xmax), 'ymax': max(0,ymax)})
+
+            objects = self.filter_objects(objects, 0.4, pred_th)
 
         if self.firstFrames == True:
             self.firstFramesCounter += 1
@@ -132,3 +162,5 @@ class ObjectDetect:
         #print(objects)
 
         return objects
+
+

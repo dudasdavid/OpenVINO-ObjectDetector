@@ -126,25 +126,27 @@ def infer_on_stream(args, model):
             # if UI marking is turned on draw the vectors, rectangles, etc
             if ui_marking:
                 # objects bounding boxes
-                for item in objects:
+                for obj in objects:
                     # draw the bounding box
-                    cv2.rectangle(batch, (item[2], item[3]), (item[4], item[5]), (0, 255, 0), 2)
+                    cv2.rectangle(batch, (obj['xmin'], obj['ymin']), (obj['xmax'], obj['ymax']), (0, 255, 0), 2)
                     # prepare the label
-                    label_text = f"{item[0]}: {item[1]*100:.3}%"
-                    label_size = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)[0]
-                    label_left = item[2]
-                    label_top = item[3] - label_size[1]
+                    label_text = f"{obj['class']}: {obj['confidence']*100:.3}%"
+                    label_size = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 1)[0]
+                    label_left = obj['xmin']
+                    label_top = obj['ymin'] - label_size[1]
                     if (label_top < 1):
                         label_top = 1
                     label_right = label_left + label_size[0]
-                    label_bottom = label_top + label_size[1] - 5
+                    label_bottom = label_top + label_size[1] - 3
                     cv2.rectangle(batch, (label_left - 1, label_top - 6), (label_right + 1, label_bottom + 1),
                               label_background_color, -1)
-                    cv2.putText(batch, label_text, (label_left, label_bottom), cv2.FONT_HERSHEY_SIMPLEX, 0.5, label_text_color, 1)
+                    cv2.putText(batch, label_text, (label_left, label_bottom), cv2.FONT_HERSHEY_SIMPLEX, 0.8, label_text_color, 1)
 
 
         # Measure overall FPS
         total_processing_time = time.time() - start_processing_time
+        if total_processing_time == 0:
+            total_processing_time = 0.001 # handle zero division
         total_fps = 1/(total_processing_time)
 
         # if FPS marking run time switch is turned on print some details on the image
